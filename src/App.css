@@ -6,19 +6,23 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Mengunci seleksi teks saat sedang menggeser pembatas */
 .app-container {
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
 }
+.app-container.is-dragging {
+  user-select: none;
+  cursor: col-resize;
+}
 
 /* Bagian Editor */
 .editor-panel {
-  flex: 1;
-  border-right: 2px solid #333;
   display: flex;
   flex-direction: column;
+  /* flex: 1; Dihapus agar dikontrol oleh inline-style width dari React */
 }
 
 .toolbar {
@@ -45,20 +49,51 @@ body {
   cursor: pointer;
 }
 
+/* --- PEMBATAS RESIZER --- */
+.resizer {
+  width: 6px;
+  background-color: #333;
+  cursor: col-resize;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.resizer:hover,
+.resizer:active,
+.app-container.is-dragging .resizer {
+  background-color: #00E676; /* Berubah warna hijau saat disentuh/digeser */
+}
+
 /* Bagian Preview */
 .preview-panel {
-  flex: 1;
-  background-color: #000000;
-  /* background-color: #00ff00; */ /* Layar hijau (chroma key) simulasi OBS */
   display: flex;
   flex-direction: column;
 }
 
 .preview-header {
   background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
-  text-align: center;
+  padding: 10px 20px;
   font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bg-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+  color: #EFEFEF;
+}
+
+.bg-picker input[type="color"] {
+  border: none;
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+  background: none;
+  padding: 0;
 }
 
 .chat-container {
@@ -67,10 +102,9 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* Memaksa chat selalu mulai dari bawah */
+  justify-content: flex-end;
 }
 
-/* Menyembunyikan scrollbar bawaan browser agar rapi */
 .chat-container::-webkit-scrollbar {
   width: 8px;
 }

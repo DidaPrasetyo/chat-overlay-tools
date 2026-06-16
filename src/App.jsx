@@ -16,7 +16,7 @@ yt-live-chat-renderer {
   overflow: hidden;
 }
 
-/* Sembunyikan pesan sistem YouTube (Community Guidelines, dll) */
+/* Sembunyikan pesan sistem YouTube */
 yt-live-chat-viewer-engagement-message-renderer {
   display: none !important;
 }
@@ -34,29 +34,28 @@ yt-live-chat-text-message-renderer,
   border-left: 4px solid #444; 
   font-family: 'Segoe UI', sans-serif;
   animation: slideIn 0.3s ease forwards;
-  display: flex !important; 
-  align-items: flex-start;
+  
+  /* Diubah menjadi block agar text wrapping konsisten dan natural */
+  display: block !important; 
+  word-wrap: break-word;
+  line-height: 1.5;
 }
 
 /* =========================================
    3. KUSTOMISASI TIER MEMBERSHIP & ROLE
    ========================================= */
-
-/* TIER: MEMBER (YouTube) / SUBSCRIBER (Twitch) */
 yt-live-chat-text-message-renderer[author-type="member"],
 .chat-line__message:has(.twitch-badge-subscriber) {
   border-left-color: #2ba640; 
   background: rgba(43, 166, 64, 0.15) !important;
 }
 
-/* TIER: MODERATOR */
 yt-live-chat-text-message-renderer[author-type="moderator"],
 .chat-line__message:has(.twitch-badge-moderator) {
   border-left-color: #ff4500; 
   background: rgba(255, 69, 0, 0.15) !important;
 }
 
-/* TIER: STREAMER / OWNER */
 yt-live-chat-text-message-renderer[author-type="owner"],
 .chat-line__message:has(.twitch-badge-broadcaster) {
   border-left-color: #ffd700;
@@ -65,25 +64,32 @@ yt-live-chat-text-message-renderer[author-type="owner"],
 }
 
 /* =========================================
-   4. AVATAR
+   4. NORMALIZE KONSISTENSI TWITCH & YOUTUBE
    ========================================= */
 yt-live-chat-text-message-renderer #author-photo {
-  width: 28px;
-  height: 28px;
-  margin-right: 12px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
+  display: none !important;
 }
-yt-img-shadow img { width: 100%; height: 100%; object-fit: cover; }
+
+.chat-line__message > span[aria-hidden="true"] {
+  display: none !important;
+}
+
+/* Memaksa wrapper internal YouTube agar bersikap seperti span Twitch */
+yt-live-chat-text-message-renderer #content,
+yt-live-chat-author-chip {
+  display: inline !important; 
+  margin: 0 !important;
+  padding: 0 !important;
+}
 
 /* =========================================
    5. NAMA PENONTON & ISI PESAN
    ========================================= */
-yt-live-chat-author-chip {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 6px;
+#chat-badges,
+.chat-line__message--badges {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
 #author-name,
@@ -91,6 +97,9 @@ yt-live-chat-author-chip {
   font-weight: bold;
   color: #EFEFEF; 
   font-size: 1.05em;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px; /* Jarak tunggal yang seragam antara nama dan pesan */
 }
 
 yt-live-chat-text-message-renderer[author-type="owner"] #author-name,
@@ -102,11 +111,10 @@ yt-live-chat-text-message-renderer[author-type="owner"] #author-name,
 .text-fragment {
   font-size: 1em;
   color: #D3D3D3;
-  line-height: 1.4;
   display: inline;
+  vertical-align: middle;
 }
 
-/* Animasi OBS */
 @keyframes slideIn {
   0% { transform: translateX(-20px); opacity: 0; }
   100% { transform: translateX(0); opacity: 1; }
@@ -115,7 +123,8 @@ yt-live-chat-text-message-renderer[author-type="owner"] #author-name,
 /* Mock Styling untuk visual preview lokal */
 .mock-badge {
   display: inline-block; padding: 2px 6px; border-radius: 4px;
-  font-size: 0.7em; font-weight: bold; margin-right: 6px;
+  font-size: 0.7em; font-weight: bold; margin-right: 2px;
+  vertical-align: middle;
 }
 .twitch-badge-subscriber { background: #2ba640; color: white; }
 .twitch-badge-moderator { background: #ff4500; color: white; }
@@ -126,16 +135,37 @@ function App() {
   const [platform, setPlatform] = useState('youtube');
   const [cssCode, setCssCode] = useState(UNIVERSAL_CSS);
   const [messages, setMessages] = useState([]);
+  const [previewBg, setPreviewBg] = useState('#000000');
+  
   const chatContainerRef = useRef(null);
+  const [editorWidth, setEditorWidth] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      let newWidth = (e.clientX / window.innerWidth) * 100;
+      if (newWidth < 20) newWidth = 20;
+      if (newWidth > 80) newWidth = 80;
+      setEditorWidth(newWidth);
+    };
+
+    const handleMouseUp = () => setIsDragging(false);
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const newRole = MOCK_ROLES[Math.floor(Math.random() * MOCK_ROLES.length)];
-      
-      const newUser = newRole === 'owner' 
-        ? 'Dida Prasetyo' 
-        : MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)];
-        
+      const newUser = newRole === 'owner' ? 'Dida Prasetyo' : MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)];
       const newMsg = MOCK_MESSAGES[Math.floor(Math.random() * MOCK_MESSAGES.length)];
       const newId = Date.now();
 
@@ -144,7 +174,6 @@ function App() {
         return updated.length > 15 ? updated.slice(updated.length - 15) : updated;
       });
     }, 2500);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -155,10 +184,10 @@ function App() {
   }, [messages]);
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isDragging ? 'is-dragging' : ''}`}>
       <style>{cssCode}</style>
 
-      <div className="editor-panel">
+      <div className="editor-panel" style={{ width: `${editorWidth}%` }}>
         <div className="toolbar">
           <h2>CSS Editor (OBS Accurate)</h2>
           <select 
@@ -177,14 +206,27 @@ function App() {
           theme="vs-dark"
           value={cssCode}
           onChange={(value) => setCssCode(value || '')}
-          options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on' }}
+          options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on', automaticLayout: true }}
         />
       </div>
 
-      <div className="preview-panel">
-        <div className="preview-header">Simulasi DOM: {platform.toUpperCase()}</div>
+      <div className="resizer" onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }} />
+
+      <div className="preview-panel" style={{ width: `${100 - editorWidth}%` }}>
+        <div className="preview-header">
+          <span>Simulasi DOM: {platform.toUpperCase()}</span>
+          <div className="bg-picker">
+            <label htmlFor="bg-color">Bg Color: </label>
+            <input 
+              id="bg-color"
+              type="color" 
+              value={previewBg} 
+              onChange={(e) => setPreviewBg(e.target.value)} 
+            />
+          </div>
+        </div>
         
-        <div className="chat-container" ref={chatContainerRef}>
+        <div className="chat-container" ref={chatContainerRef} style={{ backgroundColor: previewBg }}>
           {messages.map((msg) => (
             platform === 'youtube' ? (
               <yt-live-chat-text-message-renderer 
@@ -192,10 +234,7 @@ function App() {
                 author-type={msg.role === 'viewer' ? '' : msg.role}
               >
                 <yt-img-shadow id="author-photo">
-                  <img 
-                    src={`https://ui-avatars.com/api/?name=${msg.user}&background=random&color=fff&size=28`} 
-                    alt="avatar" 
-                  />
+                  <img src={`https://ui-avatars.com/api/?name=${msg.user}&background=random&color=fff&size=28`} alt="avatar" />
                 </yt-img-shadow>
 
                 <div id="content">
@@ -207,7 +246,6 @@ function App() {
                     </span>
                     <span id="author-name" className={msg.role}>{msg.user}</span>
                   </yt-live-chat-author-chip>
-                  
                   <span id="message" dir="auto">{msg.text}</span>
                 </div>
               </yt-live-chat-text-message-renderer>
